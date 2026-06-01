@@ -100,14 +100,15 @@ const PictureInPictureDiv = () => {
   // Canvas fallback: subscribe to timeStamp outside React rendering
   useEffect(() => {
     if (isDocPiPSupported || !isVideoPiPSupported) return;
-    const unsub = useTimeStore.subscribe(
-      (s) => s.timeStamp,
-      () => {
+    let prevTimeStamp = useTimeStore.getState().timeStamp;
+    const unsub = useTimeStore.subscribe((s) => {
+      if (s.timeStamp !== prevTimeStamp) {
+        prevTimeStamp = s.timeStamp;
         if (isPiPActiveRef.current && canvasRef.current) {
           renderCanvasFrame(canvasRef.current);
         }
-      },
-    );
+      }
+    });
     return unsub;
   }, [isDocPiPSupported, isVideoPiPSupported]);
 
