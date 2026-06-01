@@ -20,7 +20,7 @@ export default function Settings() {
 
     const [sticker, setSticker] = useState("");
 
-    const {setTime, setTimeStamp, setTicking} = useTimeStore();
+    const {setTime, setTimeStamp, setTicking, setState} = useTimeStore();
 
     const [ft, setFT] = useState(0);
     const [sb, setSB] = useState(0);
@@ -60,6 +60,7 @@ export default function Settings() {
 
         setTimeStamp(ft * 1000 * 60);
         setTicking(false);
+        setState(0);
 
         localStorage.setItem("focus_timer", ft.toString());
         localStorage.setItem("short_break", sb.toString());

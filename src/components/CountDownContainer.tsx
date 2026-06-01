@@ -1,14 +1,9 @@
-import { useEffect, useState } from "react"
 import CountDownTimer from "./CountDown";
 import useTimeStore from "@/store/timeStore";
 
 const CountDownContainer = () => {
 
-    const {state, setTimeStamp}= useTimeStore();
-
-    useEffect(()=>{
-        setTimeStamp(12 * 60 * 1000);
-    }, [])
+    const {state}= useTimeStore();
 
     return (
         <div className="min-w-xs ">

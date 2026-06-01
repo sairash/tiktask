@@ -22,12 +22,6 @@ const CountDownTimer = () => {
   const { timeStamp, ticking, changeState, setTimeStamp } = useTimeStore();
   const countdownTimer = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(Date.now());
-  const stateRef = useRef<number>(0);
-
-  // Track current state to detect changes
-  useEffect(() => {
-    stateRef.current = useTimeStore.getState().state;
-  }, [timeStamp]);
 
   function clearCountdown() {
     if (countdownTimer.current !== null) {

@@ -1,4 +1,4 @@
-import { JSX, useCallback, useEffect } from "react";
+import { JSX, memo, useCallback, useEffect } from "react";
 import {
     Tooltip,
     TooltipContent,
@@ -121,10 +121,13 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
                 break;
             case "KeyP":
                 btnEvent("pip", false);
+                break;
             case "KeyS":
-                btnEvent("settings", false)
+                btnEvent("settings", false);
+                break;
             case "KeyT":
-                btnEvent("task", false)
+                btnEvent("task", false);
+                break;
             default:
                 break;
         }
@@ -152,4 +155,4 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
     )
 };
 
-export default ControlButtons;
+export default memo(ControlButtons);

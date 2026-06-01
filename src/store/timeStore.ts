@@ -1,14 +1,15 @@
 import {create} from "zustand";
 
 interface timeStamp {
-    time: number[]; // 9: focus timer time, 1: short break time, 2: long break time
-    state: number; // in [0 - 7 is time 0 / 1] 8 is 2 of time
+    time: number[];
+    state: number;
     timeStamp: number;
     ticking: boolean;
     setTimeStamp: (timeStamp: number)=>void;
     toggleTicking: () => void;
     setTicking: (ticking: boolean) => void;
     setTime: (time: number[]) => void;
+    setState: (state: number) => void;
     changeState: () => void;
 }
 
@@ -29,10 +30,15 @@ const useTimeStore = create<timeStamp>((set, get) =>({
     setTime: ((time: number[]) => set(() =>({
         time: time
     }))),
-    changeState: () => set((state)=> ({
-        state: state.state == 8? 0: state.state + 1,
-        timeStamp: state.time[state.state  == 7? 2: state.state  % 2] * 60 * 1000
-    }))
+    setState: (s) => set(() => ({ state: s })),
+    changeState: () => set((state) => {
+        const nextState = state.state === 8 ? 0 : state.state + 1;
+        const nextTimeIndex = nextState === 8 ? 2 : nextState % 2;
+        return {
+            state: nextState,
+            timeStamp: state.time[nextTimeIndex] * 60 * 1000,
+        };
+    })
 }))
 
 export default useTimeStore;

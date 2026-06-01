@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import CountDownContainer from './CountDownContainer';
 import ControlButtons from './ControlButtons';
 import useMusicModalStore from '@/store/musicStore';
@@ -7,208 +6,249 @@ import useTimeStore from '@/store/timeStore';
 import useSettingsStore from '@/store/settingsStore';
 import useTaskStore from '@/store/taskStore';
 
+declare global {
+  interface DocumentPictureInPicture {
+    requestWindow(opts?: { width?: number; height?: number }): Promise<Window>;
+  }
+  interface Window {
+    documentPictureInPicture?: DocumentPictureInPicture;
+  }
+}
 
+function copyStyles(source: Document, target: Document) {
+  [...source.styleSheets].forEach((sheet) => {
+    try {
+      if (sheet.href) {
+        const link = target.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = sheet.href;
+        target.head.appendChild(link);
+      } else if (sheet.ownerNode) {
+        target.head.appendChild((sheet.ownerNode as Element).cloneNode(true));
+      }
+    } catch (_) {}
+  });
+}
+
+function getTimerLabel(state: number): string {
+  if (state === 8) return 'Long Break';
+  return state % 2 === 0 ? 'Focus Timer' : 'Short Break';
+}
+
+function renderCanvasFrame(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const { timeStamp, state } = useTimeStore.getState();
+  const minutes = Math.floor(timeStamp / 60000).toString().padStart(2, '0');
+  const seconds = Math.floor((timeStamp % 60000) / 1000).toString().padStart(2, '0');
+  const label = getTimerLabel(state);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000000';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 48px monospace';
+  ctx.fillText(`${minutes}:${seconds}`, canvas.width / 2, canvas.height / 2 + 16);
+  ctx.font = '18px sans-serif';
+  ctx.fillText(label, canvas.width / 2, canvas.height / 2 - 32);
+}
 
 const PictureInPictureDiv = () => {
   const { toggle } = useMusicModalStore();
-  const { timeStamp, ticking, toggleTicking } = useTimeStore();
-  const {togglTaskeOpen} = useTaskStore();
-
+  const { ticking, toggleTicking } = useTimeStore();
+  const { togglTaskeOpen } = useTaskStore();
   const settingsStore = useSettingsStore();
 
-
   const divRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pipWindowRef = useRef<Window | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isPiPSupported, setIsPiPSupported] = useState(false);
+  const isPiPActiveRef = useRef(false);
+
   const [isPiPActive, setIsPiPActive] = useState(false);
-  const [activatingPip, setActivatingPip] = useState(false);
+  const [isDocPiPSupported, setIsDocPiPSupported] = useState(false);
+  const [isVideoPiPSupported, setIsVideoPiPSupported] = useState(false);
 
   const [curButtonState, setCurButtonState] = useState<string[]>([
-    "play", "music", "settings", "picture-in-picture"
+    'play', 'music', 'settings', 'picture-in-picture',
   ]);
 
-  const animationFrameRef = useRef<number>(0);
-
-  const handlePiPClose = () => setIsPiPActive(false);
-
-
-
   useEffect(() => {
-    setIsPiPSupported('pictureInPictureEnabled' in document);
-
-    const div = divRef.current;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!div || !video || !canvas) return;
-
-    canvas.width = div.clientWidth;
-    canvas.height = div.clientHeight;
-
-    video.addEventListener('leavepictureinpicture', handlePiPClose);
-
-    return () => {
-      video.removeEventListener('leavepictureinpicture', handlePiPClose);
-    };
+    setIsDocPiPSupported('documentPictureInPicture' in window);
+    setIsVideoPiPSupported('pictureInPictureEnabled' in document);
   }, []);
 
   useEffect(() => {
-    startPip()
-  }, [timeStamp])
-
-
+    isPiPActiveRef.current = isPiPActive;
+  }, [isPiPActive]);
 
   useEffect(() => {
-    if (isPiPActive) {
-      setCurButtonState([curButtonState[0], curButtonState[1], curButtonState[2], "picture-in-picture-open"])
-    } else {
-      setCurButtonState([curButtonState[0], curButtonState[1], curButtonState[2], "picture-in-picture"])
-    }
-  }, [isPiPActive])
-
+    setCurButtonState(prev => [
+      prev[0], prev[1], prev[2],
+      isPiPActive ? 'picture-in-picture-open' : 'picture-in-picture',
+    ]);
+  }, [isPiPActive]);
 
   useEffect(() => {
-    if (!ticking) {
-      setCurButtonState(["play", curButtonState[1], curButtonState[2], curButtonState[3]])
-    } else {
-      setCurButtonState(["pause", curButtonState[1], curButtonState[2], curButtonState[3]])
+    setCurButtonState(prev => [
+      ticking ? 'pause' : 'play', prev[1], prev[2], prev[3],
+    ]);
+  }, [ticking]);
+
+  // Canvas fallback: subscribe to timeStamp outside React rendering
+  useEffect(() => {
+    if (isDocPiPSupported || !isVideoPiPSupported) return;
+    const unsub = useTimeStore.subscribe(
+      (s) => s.timeStamp,
+      () => {
+        if (isPiPActiveRef.current && canvasRef.current) {
+          renderCanvasFrame(canvasRef.current);
+        }
+      },
+    );
+    return unsub;
+  }, [isDocPiPSupported, isVideoPiPSupported]);
+
+  // Canvas fallback: handle leavepictureinpicture
+  useEffect(() => {
+    if (isDocPiPSupported) return;
+    const video = videoRef.current;
+    if (!video) return;
+    const onLeave = () => setIsPiPActive(false);
+    video.addEventListener('leavepictureinpicture', onLeave);
+    return () => video.removeEventListener('leavepictureinpicture', onLeave);
+  }, [isDocPiPSupported]);
+
+  const openDocPiP = useCallback(async () => {
+    if (!window.documentPictureInPicture || !divRef.current) return;
+    try {
+      const pipWin = await window.documentPictureInPicture.requestWindow({
+        width: 320,
+        height: 180,
+      });
+      copyStyles(document, pipWin.document);
+      pipWin.document.body.style.margin = '0';
+      pipWin.document.body.style.display = 'grid';
+      pipWin.document.body.style.placeItems = 'center';
+      pipWin.document.body.style.height = '100vh';
+      pipWin.document.body.style.background = '#ffffff';
+      pipWin.document.body.appendChild(divRef.current);
+      pipWindowRef.current = pipWin;
+      setIsPiPActive(true);
+
+      pipWin.addEventListener('pagehide', () => {
+        if (divRef.current && containerRef.current) {
+          containerRef.current.prepend(divRef.current);
+        }
+        pipWindowRef.current = null;
+        setIsPiPActive(false);
+      });
+    } catch (err) {
+      console.error('Document PiP failed:', err);
+      setIsPiPActive(false);
     }
-  }, [ticking])
+  }, []);
 
-  const startPip = () => {
-    setTimeout(async () => {
-      if (!isPiPActive) return
-      const div = divRef.current;
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
+  const closeDocPiP = useCallback(() => {
+    pipWindowRef.current?.close();
+  }, []);
 
-      if (!div || !canvas || !video) return;
-
-      try {
-        const capturedCanvas = await html2canvas(div, {
-          logging: false,
-          useCORS: true,
-          allowTaint: false,
-        });
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return;
-        canvas.width = capturedCanvas.width;
-        canvas.height = capturedCanvas.height;
-        ctx.drawImage(capturedCanvas, 0, 0);
-      } catch (error) {
-        console.error('Error capturing div:', error);
-      }
-    }, 0)
-  };
-
-
-
-  const togglePiPInnerFunction = async () => {
+  const openCanvasPiP = useCallback(async () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    if (!video || !isPiPSupported || !canvas) return;
-
+    if (!canvas || !video) return;
     try {
-      if (!document.pictureInPictureElement) {
-        setIsPiPActive(true);
-        startPip();
-
-        const stream = canvas.captureStream(1);
-        video.srcObject = stream;
-
-        await new Promise<void>((resolve) => {
-          video.addEventListener('loadedmetadata', () => resolve(), { once: true });
-        });
-
-        await video.play();
-        await video.requestPictureInPicture();
-      } else {
-        cancelAnimationFrame(animationFrameRef.current);
-        await document.exitPictureInPicture();
-        setIsPiPActive(false);
-      }
-    } catch (error) {
+      canvas.width = 320;
+      canvas.height = 180;
+      renderCanvasFrame(canvas);
+      const stream = canvas.captureStream(1);
+      video.srcObject = stream;
+      await new Promise<void>((resolve) => {
+        video.addEventListener('loadedmetadata', () => resolve(), { once: true });
+      });
+      await video.play();
+      await video.requestPictureInPicture();
+      setIsPiPActive(true);
+    } catch (err) {
+      console.error('Canvas PiP failed:', err);
       setIsPiPActive(false);
-      console.error('PiP failed:', error);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    togglePiPInnerFunction()
-  }, [activatingPip])
+  const closeCanvasPiP = useCallback(async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      }
+    } catch (_) {}
+    setIsPiPActive(false);
+  }, []);
 
+  const togglePiP = useCallback(() => {
+    if (isPiPActiveRef.current) {
+      if (isDocPiPSupported) closeDocPiP();
+      else closeCanvasPiP();
+    } else {
+      if (isDocPiPSupported) openDocPiP();
+      else if (isVideoPiPSupported) openCanvasPiP();
+    }
+  }, [isDocPiPSupported, isVideoPiPSupported, openDocPiP, closeDocPiP, openCanvasPiP, closeCanvasPiP]);
 
-  function togglePip() {
-    setActivatingPip(prev => !prev)
-  }
-
-
-
-  function openMusic() {
-    toggle()
-  }
-
-  function btnEvent(data: string, close: boolean) {
-    console.log(data)
+  const btnEvent = useCallback((data: string, _close: boolean) => {
     switch (data) {
-      case "pip":
-        togglePip();
+      case 'pip':
+        togglePiP();
         break;
-      case "play":
+      case 'play':
         toggleTicking();
         break;
-      case "music":
-        openMusic()
+      case 'music':
+        toggle();
         break;
-      case "settings":
+      case 'settings':
         settingsStore.toggle();
         break;
-      case "task":
+      case 'task':
         togglTaskeOpen();
+        break;
       default:
         break;
     }
-  }
+  }, [togglePiP, toggleTicking, toggle, settingsStore, togglTaskeOpen]);
 
-
+  const isPiPSupported = isDocPiPSupported || isVideoPiPSupported;
 
   return (
     <div className='h-full w-full'>
-      <div className="grid place-items-center h-full w-full">
+      <div ref={containerRef} className="grid place-items-center h-full w-full">
         <div
           ref={divRef}
-          style={{
-            color: 'black',
-          }}
-          className='py-20 '
+          style={{ color: 'black' }}
+          className='py-20'
         >
           <CountDownContainer />
         </div>
         <ControlButtons btnEvent={btnEvent} activeButtons={curButtonState} />
       </div>
 
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <video
-        playsInline
-        crossOrigin="anonymous"
-        ref={videoRef}
-        style={{ display: 'none' }}
-        muted
-      />
-
-      <br />
-      {/* <button
-        onClick={togglePiP}
-        disabled={!isPiPSupported}
-        style={{ marginTop: '20px' }}
-      >
-        {isPiPActive ? 'Close PiP' : 'Open PiP'}
-      </button> */}
+      {!isDocPiPSupported && isVideoPiPSupported && (
+        <>
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <video
+            playsInline
+            crossOrigin="anonymous"
+            ref={videoRef}
+            style={{ display: 'none' }}
+            muted
+          />
+        </>
+      )}
 
       {!isPiPSupported && <p>Picture-in-Picture is not supported in your browser</p>}
     </div>
   );
 };
-
 
 export default PictureInPictureDiv;
