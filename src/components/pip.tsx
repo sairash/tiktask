@@ -226,7 +226,7 @@ const PictureInPictureDiv = () => {
       <div ref={containerRef} className="grid place-items-center h-full w-full">
         <div
           ref={divRef}
-          style={{ color: 'black' }}
+          style={{ color: 'var(--theme-text)' }}
           className='py-20'
         >
           <CountDownContainer />

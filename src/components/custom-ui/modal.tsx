@@ -41,7 +41,7 @@ function modal({close, title, headerContent, bodyContent}: ModalProps) {
     return (
         <>
             <div className="fixed w-full px-2 h-full max-w-md max-h-100   left-1/2 top-1/2" style={{transform: `translate(-50%, -50%)`, zIndex: 1000,}}>
-                <div className="px-4 h-full w-full py-2 bg-white rounded flex flex-col">
+                <div className="px-4 h-full w-full py-2 rounded flex flex-col" style={{ backgroundColor: "var(--theme-card)", color: "var(--theme-text)" }}>
                     <div className="flex justify-between pt-1 pb-2">
                         <b className="">{title}</b>
                         {headerContent}

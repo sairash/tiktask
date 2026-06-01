@@ -12,6 +12,7 @@ import useStickerStore from "@/store/stickerStore";
 import { useEffect, useState } from "react";
 import { Textarea } from "./ui/textarea";
 import useTimeStore from "@/store/timeStore";
+import useThemeStore, { themes, themeToCss } from "@/store/themeStore";
 
 export default function Settings() {
 
@@ -21,10 +22,13 @@ export default function Settings() {
     const [sticker, setSticker] = useState("");
 
     const {setTime, setTimeStamp, setTicking, setState} = useTimeStore();
+    const { activeThemeId, customCss, setActiveThemeId, setCustomCss } = useThemeStore();
 
     const [ft, setFT] = useState(0);
     const [sb, setSB] = useState(0);
     const [lb, setLB] = useState(0);
+    const [selectedTheme, setSelectedTheme] = useState(activeThemeId);
+    const [localCustomCss, setLocalCustomCss] = useState(customCss);
 
 
     function close() {
@@ -50,6 +54,11 @@ export default function Settings() {
 
     }, [])
 
+    useEffect(() => {
+        setSelectedTheme(activeThemeId);
+        setLocalCustomCss(customCss);
+    }, [open, activeThemeId, customCss]);
+
     function changeSticker(id: string) {
         setSticker(id)
     }
@@ -67,6 +76,12 @@ export default function Settings() {
         localStorage.setItem("long_break",  lb.toString());
 
         setTime([ft, sb, lb])
+
+        setActiveThemeId(selectedTheme);
+        setCustomCss(localCustomCss);
+        localStorage.setItem("theme_id", selectedTheme);
+        localStorage.setItem("theme_custom_css", localCustomCss);
+
         close()
     }
 
@@ -99,7 +114,7 @@ export default function Settings() {
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
-                                    <div className="cursor-pointer hover:bg-gray-200 rounded p-1">
+                                    <div className="cursor-pointer rounded p-1 theme-btn-hover">
                                         <IconRefreshDot size={18} />
                                     </div>
                                 </TooltipTrigger>
@@ -111,7 +126,7 @@ export default function Settings() {
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
-                                    <div onClick={close} className="cursor-pointer hover:bg-rose-200 rounded p-1">
+                                    <div onClick={close} className="cursor-pointer rounded p-1 theme-btn-hover">
                                         <IconX size={18} />
                                     </div>
                                 </TooltipTrigger>
@@ -123,7 +138,7 @@ export default function Settings() {
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
-                                    <div className="cursor-pointer hover:bg-amber-200 rounded p-1" onClick={saveChanges}>
+                                    <div className="cursor-pointer rounded p-1 theme-btn-hover" onClick={saveChanges}>
                                         <IconCheck size={18} />
                                     </div>
                                 </TooltipTrigger>
@@ -154,48 +169,78 @@ export default function Settings() {
                                 <small className="font-semibold">Focus Timer</small>
                                 <input type="number" onChange={(event)=>{
                                     changeFT(parseInt(event.target.value));
-                                }} defaultValue={ft} id="foucs_timer" className="bg-gray-200 rounded p-1 w-full mt-1" />
+                                }} defaultValue={ft} id="foucs_timer" className="rounded p-1 w-full mt-1" style={{ backgroundColor: "var(--theme-input-bg)" }} />
                                 <small className="">minutes</small>
                             </div>
                             <div className="w-full">
                                 <small className="font-semibold">Short Breaks</small>
                                 <input type="number" onChange={(event)=>{
                                     changeSB(parseInt(event.target.value));
-                                }} defaultValue={sb} id="short_break" className="bg-gray-200 rounded p-1 w-full mt-1" />
+                                }} defaultValue={sb} id="short_break" className="rounded p-1 w-full mt-1" style={{ backgroundColor: "var(--theme-input-bg)" }} />
                                 <small className="">minutes</small>
                             </div>
                             <div className="w-full">
                                 <small className="font-semibold">Long Breaks</small>
                                 <input type="number" onChange={(event)=>{
                                     changeLB(parseInt(event.target.value));
-                                }} defaultValue={lb} id="long_break" className="bg-gray-200 rounded p-1 w-full mt-1" />
+                                }} defaultValue={lb} id="long_break" className="rounded p-1 w-full mt-1" style={{ backgroundColor: "var(--theme-input-bg)" }} />
                                 <small className="">minutes</small>
                             </div>
                         </div>
-                        <hr className="mt-2" />
+                        <hr className="mt-2" style={{ borderColor: "var(--theme-muted)" }} />
                         <div className="mt-4 text-sm mb-2 font-semibold">Sticker Pack: </div>
                         <div className="flex h-30">
                             <img src={`/sticker/${sticker}/choose.gif`} className="w-30" alt="" />
-                            <div className="border-l border-gray-200 w-full p-2">
+                            <div className="w-full p-2" style={{ borderLeft: "1px solid var(--theme-muted)" }}>
                                 <div className="text-sm">Choose A Pack:</div>
                                 <select onChange={(event) => {
                                     changeSticker(event.target.value)
-                                }} value={sticker} className="w-full mt-1 px-1 py-2 bg-gray-200">
+                                }} value={sticker} className="w-full mt-1 px-1 py-2" style={{ backgroundColor: "var(--theme-input-bg)" }}>
                                     {Object.entries(stickers).map(([key, value]) => (
-                                        value.id == sticker ? <option key={key} id={key} value={value.id}>{value.name}</option> : <option key={key} id={key} value={value.id}>{value.name}</option>
+                                        <option key={key} id={key} value={value.id}>{value.name}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
-                        <hr className="mt-2" />
-                        <div className="mt-4 text-sm mb-8">
-                            <div className="font-semibold mb-2">Custom Theme:</div>
-                            <div className="">
-                                <span>Here is a sample theme: </span>
-                                <a href="/" target="_blank" className="text-amber-800 border-b border-amber-600">Link</a>
-                            </div>
-
-                            <Textarea placeholder="Add custom theme" className="text-black mt-4 resize-none h-40" />
+                        <hr className="mt-2" style={{ borderColor: "var(--theme-muted)" }} />
+                        <div className="mt-4 text-sm mb-2 font-semibold">Theme:</div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {themes.map((theme) => (
+                                <button
+                                    key={theme.id}
+                                    onClick={() => {
+                                        setSelectedTheme(theme.id);
+                                        setLocalCustomCss(themeToCss(theme.colors));
+                                    }}
+                                    className="flex flex-col items-center gap-1 p-1.5 rounded cursor-pointer transition-all"
+                                    style={{
+                                        border: selectedTheme === theme.id
+                                            ? `2px solid ${theme.colors.accent}`
+                                            : "2px solid transparent",
+                                        backgroundColor: selectedTheme === theme.id
+                                            ? "var(--theme-input-bg)"
+                                            : "transparent",
+                                    }}
+                                >
+                                    <div className="flex w-full h-5 rounded overflow-hidden" style={{ border: "1px solid var(--theme-muted)" }}>
+                                        <div className="flex-1" style={{ backgroundColor: theme.colors.bg }} />
+                                        <div className="flex-1" style={{ backgroundColor: theme.colors.card }} />
+                                        <div className="flex-1" style={{ backgroundColor: theme.colors.accent }} />
+                                    </div>
+                                    <span className="text-[10px] leading-tight">{theme.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <hr className="mt-3" style={{ borderColor: "var(--theme-muted)" }} />
+                        <div className="mt-3 text-sm mb-4">
+                            <div className="font-semibold mb-2">Custom CSS:</div>
+                            <Textarea
+                                placeholder="Add custom CSS overrides"
+                                className="mt-1 resize-none h-24"
+                                style={{ backgroundColor: "var(--theme-input-bg)", color: "var(--theme-text)" }}
+                                value={localCustomCss}
+                                onChange={(e) => setLocalCustomCss(e.target.value)}
+                            />
                         </div>
                     </div>
                 }>

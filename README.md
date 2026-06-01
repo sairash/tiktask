@@ -8,4 +8,4 @@ A very beautiful timer made in react (nextjs) cause just knowing vue and svelete
 - ✅ Youtube Music
 - ✅ Todo list
 - ✅ Changeable sticker packs
-- ⏳ Custom Theme
+- ✅ Custom Theme

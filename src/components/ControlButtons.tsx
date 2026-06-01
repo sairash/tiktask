@@ -22,7 +22,7 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
         "play": <TooltipProvider key="play">
             <Tooltip>
                 <TooltipTrigger>
-                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer hover:bg-amber-500 text-black hover:text-white" onClick={() => {
+                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer theme-btn-hover" onClick={() => {
                         btnEvent("play", false)
                     }}>
                         <IconPlayerPlay width={30} height={30} stroke={2} />
@@ -36,7 +36,7 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
         "pause": <TooltipProvider key="pause">
             <Tooltip>
                 <TooltipTrigger>
-                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer hover:bg-amber-500 text-black hover:text-white" onClick={() => {
+                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer theme-btn-hover" onClick={() => {
                         btnEvent("play", false)
                     }}>
                         <IconPlayerPause width={30} height={30} stroke={2} />
@@ -50,7 +50,7 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
         "music": <TooltipProvider key="music">
             <Tooltip>
                 <TooltipTrigger>
-                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer hover:bg-amber-500 text-black hover:text-white" onClick={() => {
+                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer theme-btn-hover" onClick={() => {
                         btnEvent("music", false)
                     }}>
                         <IconMusic width={30} height={30} stroke={2} />
@@ -65,7 +65,7 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
         "settings": <TooltipProvider key="settings">
             <Tooltip>
                 <TooltipTrigger>
-                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer hover:bg-amber-500 text-black hover:text-white" onClick={() => {
+                    <div className="w-10 h-10 p-1.5 rounded cursor-pointer theme-btn-hover" onClick={() => {
                         btnEvent("settings", false)
                     }}>
                         <IconSettings width={30} height={30} stroke={2} />
@@ -80,7 +80,7 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
         "picture-in-picture": <TooltipProvider key="picture-in-picture">
             <Tooltip>
                 <TooltipTrigger>
-                    <div className="w-10 h-10 rounded cursor-pointer p-1.5 hover:bg-amber-500 text-black hover:text-white" onClick={() => {
+                    <div className="w-10 h-10 rounded cursor-pointer p-1.5 theme-btn-hover" onClick={() => {
                         btnEvent("pip", false)
                     }}>
                         <IconPictureInPictureOn width={30} height={30} stroke={2} />
@@ -94,7 +94,7 @@ const ControlButtons = ({ btnEvent, activeButtons }: { btnEvent: (data: string, 
         "picture-in-picture-open": <TooltipProvider key="picture-in-picture-open">
             <Tooltip>
                 <TooltipTrigger>
-                    <div className="w-10 h-10 rounded cursor-pointer p-1.5 hover:bg-amber-500 text-black hover:text-white" onClick={() => {
+                    <div className="w-10 h-10 rounded cursor-pointer p-1.5 theme-btn-hover" onClick={() => {
                         btnEvent("pip", true)
                     }}>
                         <IconPictureInPictureOff width={30} height={30} stroke={2} />
